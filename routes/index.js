@@ -5,9 +5,9 @@ var Q = require("q");
 var async = require("async");
 
 // var ig = require('instagram-node').instagram();
- 
-// Every call to `ig.use()` overrides the `client_id/client_secret` 
-// or `access_token` previously entered if they exist. 
+
+// Every call to `ig.use()` overrides the `client_id/client_secret`
+// or `access_token` previously entered if they exist.
 var clientId = '1334b24c87064ddc941dbd02a756dbc7';
 
 function getTimeline(userId){
@@ -46,7 +46,7 @@ function getTimeline(userId){
 }
 
 function getPosts(jsonObj){
-  
+
   var posts = [];
 
   for(i in jsonObj.data){
@@ -58,11 +58,11 @@ function getPosts(jsonObj){
   return posts;
 }
 
-function getCommentsOfOnePost(id, callback){
+function getCommentsOfOnePost(postId){
   return function(callback){
     https.get({
         host: 'api.instagram.com',
-        path: '/v1/media/'+ postIds[i] +'/comments?client_id=' + clientId,
+        path: '/v1/media/'+ postId +'/comments?client_id=' + clientId,
       }, function(res){
 
       var bodyChunks = [];
@@ -75,14 +75,14 @@ function getCommentsOfOnePost(id, callback){
 
         var body = Buffer.concat(bodyChunks);
         var data = JSON.parse(body).data;
-        comments.push(data);
-        // console.log('success:' + options.path + " length: " + data.length);
-        callback();
+        // comments.push(data);
+        console.log('success:' + postId + " length: " + data.length);
+        callback(null, data);
 
       });
 
     });
-
+  }
 }
 
 function getCommentsOfAllPosts(postIds){
@@ -91,13 +91,15 @@ function getCommentsOfAllPosts(postIds){
   var calls = [];
   var comments = [];
   console.log(postIds);
-  for(i in postIds){
-    calls.push(getCommentsOfOnePost);
-  }
+  console.log("Total Post ID: " + postIds.length);
 
-  async.parallel(calls, function(){
-    concatComments = [].concat.apply([], comments);
-    deferred.resolve(concatComments);
+  getPostsFunction = postIds.map(function(postId) { return getCommentsOfOnePost(postId); });
+
+  async.parallel(getPostsFunction, function(err, results){
+    // concatComments = [].concat.apply([], comments);
+    results = [].concat.apply([], results);
+    console.log(results);
+    deferred.resolve(results);
   });
 
   return deferred.promise;
@@ -108,20 +110,20 @@ router.get('/', function(req, res, next) {
 
   getTimeline('4275583')
   .then(function(jsonObj){
-    return getPosts(jsonObj);
+    return getPosts(jsonObj); //return arrays of ids
   })
   .then(function(postIds){
     return getCommentsOfAllPosts(postIds);
   })
   .then(function(content){
-    res.render('index', { 
-      title: 'Express', 
+    res.render('index', {
+      title: 'Express',
       // posts: content,
       comments: content
     });
   })
   .catch(function (error) {
-      // Handle any error from all above steps 
+      // Handle any error from all above steps
   })
   .done();
 
