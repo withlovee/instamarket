@@ -1,0 +1,17 @@
+extends layout
+
+block content
+  h1= title
+  p Welcome to #{title}
+  p #{posts}
+  table
+    - each comment in comments
+      tr
+        td
+          = comment.from.username
+        td
+          = comment.from.id
+        td
+          = comment.from.full_name
+        td
+          = comment.text
